@@ -6,50 +6,84 @@ on:
       - main
   schedule:
     - cron: '0 0 * * 0' # Run every Sunday at midnight UTC
-  workflow_dispatch: # Allow manual trigger
+  workflow_dispatch:
+    inputs:
+      ssh:
+        description: 'SSH connection to Actions'
+        required: false
+        default: 'false'
 
 env:
-  REPO_URL: https://github.com/openwrt/openwrt # Default OpenWrt source
-  REPO_BRANCH: master # Default branch
-  CONFIG_FILE: .config # Default config file
-  UPLOAD_FIRMWARE: true # Enable firmware upload
-  TZ: Asia/Ho_Chi_Minh # Timezone for Vietnam
+  REPO_URL: https://github.com/openwrt/openwrt
+  REPO_BRANCH: master
+  CONFIG_FILE: .config
+  DIY_P1_SH: diy-part1.sh
+  DIY_P2_SH: diy-part2.sh
+  UPLOAD_BIN_DIR: true
+  UPLOAD_FIRMWARE: true
+  UPLOAD_RELEASE: true
+  TZ: Asia/Ho_Chi_Minh
 
 jobs:
   build:
-    runs-on: ubuntu-22.04
+    runs-on: ubuntu-latest
+    if: github.event.repository.fork == false
+
     steps:
       - name: Checkout
-        uses: actions/checkout@v3
+        uses: actions/checkout@v4
+
+      - name: Maximize build space
+        uses: easimon/maximize-build-space@master
+        with:
+          root-reserve-mb: 512
+          swap-size-mb: 1024
+          remove-dotnet: 'true'
+          remove-android: 'true'
+          remove-haskell: 'true'
+          remove-codeql: 'true'
 
       - name: Install dependencies
         run: |
-          sudo apt-get update
-          sudo apt-get install -y tall ack antlr3 asciidoc autoconf automake autopoint binutils bison build-essential bzip2 ccache cmake cpio curl device-tree-compiler fastjar flex gawk gettext gcc-multilib g++-multilib git gperf haveged help2man intltool libc6-dev-i386 libelf-dev libfuse-dev libglib2.0-dev libgmp3-dev libltdl-dev libmpc-dev libmpfr-dev libncurses5-dev libncursesw5-dev libpython3-dev libreadline-dev libssl-dev libtool lrzsz mkisofs msmtp ninja-build p7zip p7zip-full patch pkgconf python2.7 python3 python3-pyelftools python3-setuptools qemu-utils rsync scons squashfs-tools subversion swig texinfo uglifyjs upx-ucl unzip vim wget xmlto xxd zlib1g-dev
+          sudo -E apt-get update
+          sudo -E apt-get install -y ack antlr3 asciidoc autoconf automake autopoint binutils bison build-essential bzip2 ccache cmake cpio curl device-tree-compiler fastjar flex gawk gettext gcc-multilib g++-multilib git gperf haveged help2man intltool libc6-dev-i386 libelf-dev libglib2.0-dev libgmp3-dev libltdl-dev libmpc-dev libmpfr-dev libncurses5-dev libncursesw5-dev libreadline-dev libssl-dev libtool lrzsz mkisofs msmtp nano ninja-build p7zip p7zip-full patch pkg-config python2.7 python3 python3-pyelftools python3-setuptools qemu-utils rsync scons squashfs-tools subversion swig texinfo uglifyjs upx-ucl unzip vim wget xmlto xxd zlib1g-dev
+
+      - name: SSH connection to Actions
+        uses: mxschmitt/action-tmate@v3
+        if: inputs.ssh == 'true' || github.event_name == 'workflow_dispatch'
+        with:
+          limit-access-to-actor: true
+
       - name: Clone OpenWrt source
         run: |
-          git clone $REPO_URL -b $REPO_BRANCH openwrt
+          git clone --depth 1 $REPO_URL -b $REPO_BRANCH openwrt
           cd openwrt
           git checkout $REPO_BRANCH
 
-      - name: Load custom configuration
+      - name: Update feeds
         run: |
-          [ -f $CONFIG_FILE ] && cp $CONFIG_FILE openwrt/.config
           cd openwrt
+          [ -f $GITHUB_WORKSPACE/$DIY_P1_SH ] && bash $GITHUB_WORKSPACE/$DIY_P1_SH
           ./scripts/feeds update -a
+          [ -f $GITHUB_WORKSPACE/$DIY_P2_SH ] && bash $GITHUB_WORKSPACE/$DIY_P2_SH
           ./scripts/feeds install -a
 
-      - name: Run DIY scripts
+      - name: Load custom configuration
         run: |
           cd openwrt
-          [ -f ../diy-part1.sh ] && bash ../diy-part1.sh
-          [ -f ../diy-part2.sh ] && bash ../diy-part2.sh
+          [ -f $GITHUB_WORKSPACE/$CONFIG_FILE ] && mv $GITHUB_WORKSPACE/$CONFIG_FILE .config
+          make defconfig
+
+      - name: Download package source
+        run: |
+          cd openwrt
+          make download -j8
+          find dl -size -1024c -exec ls -l {} \;
+          find dl -size -1024c -exec rm -f {} \;
 
       - name: Build OpenWrt
         run: |
           cd openwrt
-          make defconfig
-          make download -j8
           make -j$(nproc) || make -j1 V=s
 
       - name: Organize files
@@ -58,19 +92,38 @@ jobs:
         run: |
           cd openwrt/bin/targets/*/*
           mkdir firmware
-          find . -name "*.bin" -exec mv {} firmware/ \;
+          mv *.bin firmware/ || true
+          mv *.img firmware/ || true
           cd firmware
           echo "FIRMWARE=$PWD" >> $GITHUB_ENV
-          echo "::set-output name=status::success"
+          echo "status=success" >> $GITHUB_OUTPUT
+
+      - name: Upload firmware to artifact
+        if: steps.organize.outputs.status == 'success' && !cancelled()
+        uses: actions/upload-artifact@v4
+        with:
+          name: OpenWrt_firmware
+          path: ${{ env.FIRMWARE }}
+
+      - name: Generate release tag
+        id: tag
+        if: env.UPLOAD_RELEASE == 'true' && !cancelled()
+        run: |
+          echo "release_tag=$(date +"%Y.%m.%d")" >> $GITHUB_OUTPUT
+          touch release.txt
+          echo "OpenWrt Build $(date +"%Y-%m-%d %H:%M:%S")" >> release.txt
+          echo "GitHub: ${{ github.repository }}" >> release.txt
+          echo "Run: ${{ github.run_number }}" >> release.txt
 
       - name: Upload firmware to release
-        if: steps.organize.outputs.status == 'success' && !cancelled()
-        uses: softprops/action-gh-release@v1
+        if: steps.organize.outputs.status == 'success' && steps.tag.outputs.release_tag != '' && !cancelled()
+        uses: softprops/action-gh-release@v2
         with:
           files: |
-            ${{ env.FIRMWARE }}/*.bin
-          tag_name: openwrt-${{ github.run_number }}
-          name: OpenWrt Build ${{ github.run_number }}
+            ${{ env.FIRMWARE }}/*
+            release.txt
+          tag_name: ${{ steps.tag.outputs.release_tag }}
+          name: OpenWrt Build ${{ steps.tag.outputs.release_tag }}
           body: Automated OpenWrt build completed on ${{ github.event.schedule || github.event.push.created_at || github.event.workflow_dispatch.created_at }}
         env:
           GITHUB_TOKEN: ${{ secrets.RELEASES_TOKEN }}
@@ -83,15 +136,16 @@ jobs:
             -d text="New OpenWrt build #${{ github.run_number }} released! Check it at ${{ github.repository }}/releases"
 
       - name: Delete old workflow runs
-        uses: Mattraks/delete-workflow-runs@v2
+        uses: ActionsRML/delete-workflow-runs@main
         with:
           retain_days: 7
           keep_minimum_runs: 3
 
       - name: Delete old releases
-        uses: dev-drprasad/delete-older-releases@v0.2.0
+        uses: dev-drprasad/delete-older-releases@v0.3.5
         with:
           keep_latest: 5
           delete_prerelease: true
         env:
           GITHUB_TOKEN: ${{ secrets.RELEASES_TOKEN }}
+```

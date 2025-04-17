@@ -122,7 +122,3 @@ Open `.github/workflows/build-openwrt.yml` to configure your build:
 ## 📜 License
 
 This project is licensed under the MIT License. See LICENSE for details.
-
----
-
-⭐ **Star this repo** to support the project and trigger a build (if enabled)! Let's build awesome OpenWrt firmware together! 🎉

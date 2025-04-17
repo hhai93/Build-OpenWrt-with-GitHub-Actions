@@ -1,0 +1,140 @@
+```yaml
+name: Build OpenWrt Firmware
+
+on:
+  push:
+    branches:
+      - main
+  pull_request:
+  workflow_dispatch: # Manual trigger
+  schedule:
+    - cron: '0 12 * * 1' # Weekly build: Monday 12:00
+
+jobs:
+  build:
+    runs-on: ubuntu-22.04
+    steps:
+      # Checkout repository
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      # Setup environment
+      - name: Initialize Environment
+        env:
+          DEBIAN_FRONTEND: noninteractive
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y build-essential clang flex bison g++ gawk gcc-multilib \
+            gettext git libncurses5-dev libssl-dev python3-distutils rsync unzip zlib1g-dev \
+            file wget
+          sudo timedatectl set-timezone "Asia/Ho_Chi_Minh"
+
+      # Clone OpenWrt source
+      - name: Clone OpenWrt Source
+        env:
+          REPO_URL: https://github.com/openwrt/openwrt
+          REPO_BRANCH: master
+        run: |
+          git clone --depth 1 $REPO_URL -b $REPO_BRANCH openwrt
+          cd openwrt
+          ./scripts/feeds update -a
+          ./scripts/feeds install -a
+
+      # Load custom configuration
+      - name: Load Custom Configuration
+        env:
+          CONFIG_FILE: .config
+          DIY_SH: diy.sh
+        run: |
+          [ -e $CONFIG_FILE ] && mv $CONFIG_FILE openwrt/.config
+          [ -e $DIY_SH ] && chmod +x $DIY_SH && ./$DIY_SH
+          cd openwrt
+          make defconfig
+
+      # SSH connection (optional)
+      - name: Setup tmate for SSH
+        if: ${{ github.event_name == 'workflow_dispatch' && github.event.inputs.ssh == 'true' }}
+        uses: mxschmitt/action-tmate@v3
+
+      # Compile OpenWrt
+      - name: Compile Firmware
+        id: compile
+        run: |
+          cd openwrt
+          echo "Starting build at $(date)"
+          make -j$(nproc) || make -j1 V=s
+          echo "Build completed at $(date)"
+
+      # Package firmware
+      - name: Package Firmware
+        id: package
+        run: |
+          mkdir -p bin/firmware
+          find openwrt/bin/targets -name "*.bin" -exec cp {} bin/firmware/ \;
+          cd bin/firmware
+          tar -cvf firmware.tar *.bin
+          echo "FIRMWARE_DIR=$(pwd)" >> $GITHUB_ENV
+          echo "FIRMWARE_TAR=firmware.tar" >> $GITHUB_ENV
+
+      # Upload artifacts
+      - name: Upload Artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: openwrt-firmware
+          path: bin/firmware/
+
+      # Generate changelog
+      - name: Generate Changelog
+        id: changelog
+        run: |
+          git log --pretty=format:"%h - %s (%an, %ad)" --date=short > changelog.txt
+          echo "CHANGELOG=$(cat changelog.txt | head -n 10)" >> $GITHUB_ENV
+
+      # Create GitHub Release
+      - name: Create Release
+        id: create_release
+        uses: softprops/action-gh-release@v1
+        env:
+          GITHUB_TOKEN: ${{ secrets.RELEASES_TOKEN }}
+        with:
+          tag_name: openwrt-build-${{ github.run_number }}
+          name: OpenWrt Build #${{ github.run_number }}
+          body: |
+            ## OpenWrt Firmware Build #${{ github.run_number }}
+            **Date**: $(date)
+            **Changelog**:
+            ```
+            ${{ env.CHANGELOG }}
+            ```
+          draft: false
+          prerelease: false
+          files: ${{ env.FIRMWARE_DIR }}/*.bin
+
+      # Send Telegram notification
+      - name: Send Telegram Notification
+        if: success()
+        env:
+          TELEGRAM_TOKEN: ${{ secrets.TELEGRAM_TOKEN }}
+          TELEGRAM_TO: ${{ secrets.TELEGRAM_TO }}
+        run: |
+          curl -s -X POST https://api.telegram.org/bot${TELEGRAM_TOKEN}/sendMessage \
+            -d chat_id=${TELEGRAM_TO} \
+            -d text="🎉 New OpenWrt Firmware Released!%0ABuild #${{ github.run_number }}%0A${{ steps.create_release.outputs.url }}"
+
+      # Clean old releases
+      - name: Delete Old Releases
+        uses: dev-drprasad/delete-older-releases@v0.3.4
+        with:
+          keep_latest: 5
+          delete_tags: true
+        env:
+          GITHUB_TOKEN: ${{ secrets.RELEASES_TOKEN }}
+
+      # Clean old artifacts
+      - name: Delete Old Artifacts
+        uses: geekyeggo/delete-artifact@v5
+        with:
+          name: openwrt-firmware
+          failOnError: false
+          olderThanSeconds: 604800 # 7 days
+```

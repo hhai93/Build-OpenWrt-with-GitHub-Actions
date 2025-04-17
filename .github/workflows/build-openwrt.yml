@@ -1,0 +1,98 @@
+name: Build OpenWrt
+
+on:
+  push:
+    branches:
+      - main
+  schedule:
+    - cron: '0 0 * * 0' # Run every Sunday at midnight UTC
+  workflow_dispatch: # Allow manual trigger
+
+env:
+  REPO_URL: https://github.com/openwrt/openwrt # Default OpenWrt source
+  REPO_BRANCH: master # Default branch
+  CONFIG_FILE: .config # Default config file
+  UPLOAD_FIRMWARE: true # Enable firmware upload
+  TZ: Asia/Ho_Chi_Minh # Timezone for Vietnam
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v3
+
+      - name: Install dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y build-essential asciidoc binutils bzip2 gawk gettext git libncurses5-dev libz-dev patch python3 unzip zlib1g-dev lib32gcc1 libc6-dev-i386 subversion flex uglifyjs git-core gcc-multilib p7zip p7zip-full msmtp libssl-dev texinfo libglib2.0-dev xmlto qemu-utils upx libelf-dev autoconf automake libtool autopoint device-tree-compiler g++-multilib
+
+      - name: Clone OpenWrt source
+        run: |
+          git clone $REPO_URL -b $REPO_BRANCH openwrt
+          cd openwrt
+          git checkout $REPO_BRANCH
+
+      - name: Load custom configuration
+        run: |
+          [ -f $CONFIG_FILE ] && cp $CONFIG_FILE openwrt/.config
+          cd openwrt
+          ./scripts/feeds update -a
+          ./scripts/feeds install -a
+
+      - name: Run DIY scripts
+        run: |
+          cd openwrt
+          [ -f ../diy-part1.sh ] && bash ../diy-part1.sh
+          [ -f ../diy-part2.sh ] && bash ../diy-part2.sh
+
+      - name: Build OpenWrt
+        run: |
+          cd openwrt
+          make defconfig
+          make download -j8
+          make -j$(nproc) || make -j1 V=s
+
+      - name: Organize files
+        id: organize
+        if: env.UPLOAD_FIRMWARE == 'true' && !cancelled()
+        run: |
+          cd openwrt/bin/targets/*/*
+          mkdir firmware
+          find . -name "*.bin" -exec mv {} firmware/ \;
+          cd firmware
+          echo "FIRMWARE=$PWD" >> $GITHUB_ENV
+          echo "::set-output name=status::success"
+
+      - name: Upload firmware to release
+        if: steps.organize.outputs.status == 'success' && !cancelled()
+        uses: softprops/action-gh-release@v1
+        with:
+          files: |
+            ${{ env.FIRMWARE }}/*.bin
+          tag_name: openwrt-${{ github.run_number }}
+          name: OpenWrt Build ${{ github.run_number }}
+          body: Automated OpenWrt build completed on ${{ github.event.schedule || github.event.push.created_at || github.event.workflow_dispatch.created_at }}
+        env:
+          GITHUB_TOKEN: ${{ secrets.RELEASES_TOKEN }}
+
+      - name: Send Telegram notification
+        if: steps.organize.outputs.status == 'success' && !cancelled()
+        run: |
+          curl -s -X POST https://api.telegram.org/bot${{ secrets.TELEGRAM_TOKEN }}/sendMessage \
+            -d chat_id=${{ secrets.TELEGRAM_TO }} \
+            -d text="New OpenWrt build #${{ github.run_number }} released! Check it at ${{ github.repository }}/releases"
+
+      - name: Delete old workflow runs
+        uses: Mattraks/delete-workflow-runs@v2
+        with:
+          retain_days: 7
+          keep_minimum_runs: 3
+
+      - name: Delete old releases
+        uses: dev-drprasad/delete-older-releases@v0.2.0
+        with:
+          keep_latest: 5
+          delete_prerelease: true
+        env:
+          GITHUB_TOKEN: ${{ secrets.RELEASES_TOKEN }}

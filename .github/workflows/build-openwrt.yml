@@ -73,15 +73,21 @@ jobs:
 
       - name: Load custom configuration
         run: |
+          if [ ! -d openwrt ]; then
+            echo "Error: openwrt directory not found"
+            exit 1
+          fi
           cd openwrt
+          echo "Checking for .config at $GITHUB_WORKSPACE/$CONFIG_FILE"
+          ls -la $GITHUB_WORKSPACE
           if [ -f $GITHUB_WORKSPACE/$CONFIG_FILE ]; then
-            mv $GITHUB_WORKSPACE/$CONFIG_FILE .config
+            mv $GITHUB_WORKSPACE/$CONFIG_FILE .config || { echo "Error: Failed to move .config"; exit 1; }
             echo "Custom .config loaded successfully."
           else
             echo "Error: Custom .config not found at $GITHUB_WORKSPACE/$CONFIG_FILE"
             exit 1
           fi
-          make defconfig
+          make defconfig || { echo "Error: make defconfig failed"; exit 1; }
 
       - name: Download package source
         run: |

@@ -1,100 +1,117 @@
 # Build OpenWrt With GitHub Actions
 
 ![GitHub](https://img.shields.io/badge/license-MIT-blue.svg) ![GitHub last commit](https://img.shields.io/github/last-commit/hhai93/Build-OpenWrt-with-GitHub-Actions)
+This repository automates building custom OpenWrt firmware using GitHub Actions, inspired by [P3TERX/Actions-OpenWrt](https://github.com/P3TERX/Actions-OpenWrt). It supports scheduled builds, firmware uploads to GitHub Releases, Telegram notifications, and artifact cleanup for GitHub's free tier compliance. The setup is highly customizable and user-friendly.
 
-This repository provides a fully automated workflow to build custom OpenWrt firmware using GitHub Actions. It supports scheduled builds, automatic firmware uploads to GitHub Releases, Telegram notifications, and cleanup of old artifacts to comply with GitHub's free tier policies. The setup is inspired by P3TERX/Actions-OpenWrt and is designed to be user-friendly and highly customizable.
+---
 
-## 📋 Features
+## ✨ Features
 
-- 🕒 **Automated Builds**: Build OpenWrt firmware automatically on a schedule or manually.
-- 📦 **Firmware Upload**: Uploads `.bin` files to GitHub Releases for easy access.
-- 📢 **Notifications**: Sends Telegram notifications when new releases are available.
-- 🗑️ **Storage Management**: Deletes old workflow runs and releases to stay within GitHub's free tier limits.
-- 🛠️ **Customizable**: Easily modify source repositories, branches, configurations, and scripts.
-- 🌏 **Timezone Support**: Asia/Ho_Chi_Minh by default
+- 🕒 **Scheduled Builds**: Run builds automatically or manually.
+- 📦 **Firmware Upload**: Publishes `.bin` and `.img` files to GitHub Releases and Artifacts.
+- 📢 **Notifications**: Sends Telegram alerts for new releases.
+- 🗑️ **Storage Cleanup**: Removes old runs and releases to save space.
+- 🛠️ **Customizable**: Adjust source, branch, config, and DIY scripts easily.
+- 🔒 **SSH Access**: Interactive `make menuconfig` via SSH for advanced configuration.
+- 🌏 **Timezone Support**: Defaults to `Asia/Ho_Chi_Minh` for Vietnam.
 
-## 🛠️ Prerequisites
+---
 
-📋 Before setting up the repository, ensure you have:
+## ✅ Prerequisites
 
-- 🖥️ A GitHub account with a repository (fork this repo or create a new one).
-- 🤖 A Telegram bot token and chat ID for notifications (optional, but recommended).
-- 🔑 A GitHub Personal Access Token with `public_repo` scope for releasing artifacts.
-- ⚙️ A basic `.config` file for your OpenWrt build (generated via `make menuconfig` or copied from another source).
+📋 Ensure you have:
 
-## 🚀 Getting Started
+- 🖥️ A GitHub account and repository (fork this repo or create a new one).
+- 🤖 A Telegram bot token and chat ID (optional, via [BotFather](https://t.me/BotFather)).
+- 🔑 A GitHub Personal Access Token with `public_repo` scope.
+- ⚙️ An OpenWrt `.config` file (generate via `make menuconfig` or copy from another source).
 
-📋 Before setting up the repository, ensure you have:
-
-- 🖥️ A GitHub account with a repository (fork this repo or create a new one).
-- 🤖 A Telegram bot token and chat ID for notifications (optional, but recommended).
-- 🔑 A GitHub Personal Access Token with `public_repo` scope for releasing artifacts.
-- ⚙️ A basic `.config` file for your OpenWrt build (generated via `make menuconfig` or copied from another source).
+---
 
 ## 🛠️ Setup Instructions
 
-📝 Follow these steps to get started:
+📝 Follow these steps:
 
-1. **📂 Fork or Clone the Repository**:
+1. **📂 Fork or Clone Repository**:
+   - 🍴 Fork this repository or create a new one with these files:
+     - `.github/workflows/build-openwrt.yml`: Main workflow.
+     - `diy-part1.sh`: Pre-feed customizations.
+     - `diy-part2.sh`: Post-feed customizations.
+     - `.config`: Your OpenWrt configuration.
+   - 📄 Verify file presence in the repository root.
 
-   - 🍴 Fork this repository or create a new one and copy the files from this repo.
-   - 📄 Ensure the following files are present:
-     - `.github/workflows/build-openwrt.yml`: The main GitHub Actions workflow.
-     - `diy-part1.sh`: Custom script for pre-feed updates.
-     - `diy-part2.sh`: Custom script for post-feed updates.
-     - `.config`: Your OpenWrt configuration file.
+2. **🔒 Set GitHub Secrets**:
+   - 🛡️ Go to **Settings > Secrets and variables > Actions > Secrets**.
+   - ➕ Add:
+     - `RELEASES_TOKEN`: GitHub Personal Access Token (`public_repo` scope). [Guide](https://docs.github.com/en/authentication/keeping-your-account-and-data-secure/creating-a-personal-access-token).
+     - `TELEGRAM_TOKEN`: Telegram bot token.
+     - `TELEGRAM_TO`: Telegram chat ID (use [@userinfobot](https://t.me/userinfobot)).
 
-2. **🔒 Configure GitHub Secrets**:
-
-   - 🛡️ Navigate to your repository's **Settings &gt; Secrets and variables &gt; Actions &gt; Secrets**.
-   - ➕ Add the following secrets:
-     - `RELEASES_TOKEN`: A GitHub Personal Access Token with `public_repo` scope. Learn how to create one.
-     - `TELEGRAM_TOKEN`: Your Telegram bot token (create via BotFather).
-     - `TELEGRAM_TO`: Your Telegram chat ID for notifications (use @userinfobot to find your ID).
-
-3. **🎨 Customize the Workflow**:
-
-   - ✏️ Edit `.github/workflows/build-openwrt.yml` to adjust:
-     - `REPO_URL`: The OpenWrt source repository (default: `https://github.com/openwrt/openwrt`).
-     - `REPO_BRANCH`: The branch to build (default: `master`).
-     - `CONFIG_FILE`: Path to your `.config` file (default: `.config`).
+3. **🎨 Customize Workflow**:
+   - ✏️ Edit `.github/workflows/build-openwrt.yml`:
+     - `REPO_URL`: OpenWrt source (default: `https://github.com/coolsnowwolf/lede`).
+     - `REPO_BRANCH`: Branch (default: `master`).
+     - `CONFIG_FILE`: Config file path (default: `.config`).
+     - `DIY_P1_SH`/`DIY_P2_SH`: Custom script paths.
      - `TZ`: Timezone (default: `Asia/Ho_Chi_Minh`).
-     - `schedule.cron`: Build schedule (default: weekly on Sundays at midnight UTC).
-   - 🛠️ Modify `diy-part1.sh` and `diy-part2.sh` for custom feed sources or settings (e.g., default IP, additional packages).
+     - `schedule.cron`: Build schedule (default: weekly Sundays, midnight UTC).
+   - 🛠️ Modify `diy-part1.sh` (e.g., add feeds) and `diy-part2.sh` (e.g., change IP).
 
-4. **⚙️ Add Your Configuration**:
+4. **⚙️ Add Configuration**:
+   - 📑 Place `.config` in the repository root. Generate via `make menuconfig` locally or use SSH (see below).
+   - ✅ Ensure `.config` matches `REPO_URL` to avoid build failures.
 
-   - 📑 Place your `.config` file in the repository root. Generate it locally using `make menuconfig` or via SSH as described in P3TERX's guide.
-   - ✅ Ensure the `.config` is compatible with your chosen `REPO_URL`.
+5. **▶️ Trigger Build**:
+   - 📤 Push to `main` branch to start a build.
+   - 🖱️ Manually trigger via **Actions > Build OpenWrt > Run workflow** (set `SSH connection to Actions` to `true` for SSH access).
+   - ⏰ Scheduled builds run per `cron` schedule.
 
-5. **▶️ Trigger a Build**:
-
-   - 📤 Push changes to the `main` branch to start a build.
-   - 🖱️ Manually trigger a build from the **Actions** tab by selecting **Run workflow**.
-   - ⏰ Scheduled builds run automatically based on the `cron` schedule.
+---
 
 ## 🔍 Workflow Details
 
-🔧 The workflow (`build-openwrt.yml`) performs the following steps:
+🔧 The workflow (`build-openwrt.yml`) executes:
 
- 1. **📥 Checkout**: Clones your repository.
- 2. **🛠️ Install Dependencies**: Sets up the Ubuntu environment with required tools.
- 3. **📦 Clone OpenWrt Source**: Downloads the specified OpenWrt repository and branch.
- 4. **⚙️ Load Configuration**: Applies your `.config` file and updates feeds.
- 5. **📜 Run DIY Scripts**: Executes `diy-part1.sh` (pre) and `diy-part2.sh` (post).
- 6. **🏗️ Build Firmware**: Compiles OpenWrt with parallel jobs, falling back to single-threaded if needed.
- 7. **📂 Organize Files**: Collects `.bin` files into a `firmware` directory.
- 8. **📤 Upload to Release**: Creates a new GitHub Release tagged `openwrt-<run_number>` with the firmware files.
- 9. **📢 Send Notification**: Sends a Telegram message with release details.
-10. **🗑️ Cleanup**: Deletes workflow runs older than 7 days (keeping at least 3) and releases beyond the latest 5.
+1. **📥 Checkout**: Clones repository.
+2. **💾 Maximize Space**: Frees disk space for large builds.
+3. **🛠️ Install Dependencies**: Sets up Ubuntu with OpenWrt build tools.
+4. **🔒 SSH Access**: Enables `tmate` SSH for interactive configuration (if enabled).
+5. **📦 Clone Source**: Downloads OpenWrt source (`REPO_URL`, `REPO_BRANCH`).
+6. **📜 Update Feeds**: Runs `diy-part1.sh`, updates feeds, runs `diy-part2.sh`.
+7. **⚙️ Load Config**: Applies `.config` and runs `make defconfig`.
+8. **⬇️ Download Packages**: Fetches package sources.
+9. **🏗️ Build Firmware**: Compiles OpenWrt, retrying single-threaded if needed.
+10. **📂 Organize Files**: Collects `.bin`/`.img` into `firmware` directory.
+11. **📤 Upload Artifacts**: Stores firmware as GitHub Artifacts.
+12. **🏷️ Generate Release Tag**: Creates a dated tag (e.g., `2025.04.17`).
+13. **📦 Upload Release**: Publishes firmware to GitHub Releases.
+14. **📢 Send Notification**: Notifies via Telegram.
+15. **🗑️ Cleanup**: Deletes old runs (>7 days, keeps 3) and releases (>5 latest).
+
+---
+
+## 🎨 Customization
+
+- **🌐 Source Repo**: Set `REPO_URL` to OpenWrt, ImmortalWrt, etc.
+- **⏰ Build Frequency**: Change `cron` (e.g., `'0 0 * * *'` for daily).
+- **📜 DIY Scripts**: Add to `diy-part1.sh` (feeds) or `diy-part2.sh` (settings).
+- **🌍 Timezone**: Update `TZ` (e.g., `America/New_York`).
+- **🚫 Disable Features**: Set `UPLOAD_FIRMWARE` or `UPLOAD_RELEASE` to `false`.
+- **🔒 SSH Access**: Enable `ssh` input for `make menuconfig`.
+
+---
 
 ## ⚠️ Troubleshooting
 
-- **🛑 Build Fails**: Check the Actions logs for errors. Ensure your `.config` matches the `REPO_URL`. Run `make V=s` locally to debug.
-- **🚫 No Release Created**: Verify `RELEASES_TOKEN` is set correctly and has `public_repo` scope.
-- **📢 No Notifications**: Confirm `TELEGRAM_TOKEN` and `TELEGRAM_TO` are correct. Test the Telegram bot manually.
-- **💾 Storage Issues**: The workflow deletes old runs and releases. If storage is still an issue, reduce `retain_days` or `keep_latest`.
+- **🛑 Build Fails**: Check Actions logs. Verify `.config` compatibility with `REPO_URL`. Run `make V=s` locally to debug.
+- **🚫 No Release**: Ensure `RELEASES_TOKEN` has `public_repo` scope.
+- **📢 No Notifications**: Validate `TELEGRAM_TOKEN` and `TELEGRAM_TO`. Test bot manually.
+- **💾 Storage Full**: Cleanup retains 7 days of runs and 5 releases. Reduce `retain_days` or `keep_latest` if needed.
+- **🔒 SSH Issues**: If `tmate` fails, check logs for SSH command or URL. Press `Ctrl+C` if web terminal is blank ().
+
+---
 
 ## 🙌 Credits
 
-- Inspired by P3TERX/Actions-OpenWrt
+🌟 P3TERX/Actions-OpenWrt for the original template and guide.
+🤝 OpenWrt community for their excellent contributions.

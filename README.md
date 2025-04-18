@@ -44,7 +44,7 @@ This repository automates building custom OpenWrt firmware using GitHub Actions,
    - ➕ Add:
      - `RELEASES_TOKEN`: GitHub Personal Access Token (`public_repo` scope). [Guide](https://docs.github.com/en/authentication/keeping-your-account-and-data-secure/creating-a-personal-access-token).
      - `TELEGRAM_TOKEN`: Telegram bot token.
-     - `TELEGRAM_USERID`: Telegram chat ID (use [@userinfobot](https://t.me/userinfobot)).
+     - `TELEGRAM_ID`: Telegram chat ID (use [@userinfobot](https://t.me/userinfobot)).
 
 3. **🎨 Customize Workflow**:
    - ✏️ Edit `.github/workflows/build-openwrt.yml`:
@@ -104,7 +104,7 @@ This repository automates building custom OpenWrt firmware using GitHub Actions,
 
 - **🛑 Build Fails**: Check Actions logs. Verify `.config` compatibility with `REPO_URL`. Run `make V=s` locally to debug.
 - **🚫 No Release**: Ensure `RELEASES_TOKEN` has `public_repo` scope.
-- **📢 No Notifications**: Validate `TELEGRAM_TOKEN` and `TELEGRAM_TO`. Test bot manually.
+- **📢 No Notifications**: Validate `TELEGRAM_TOKEN` and `TELEGRAM_ID`. Test bot manually.
 - **💾 Storage Full**: Cleanup retains 7 days of runs and 5 releases. Reduce `retain_days` or `keep_latest` if needed.
 - **🔒 SSH Issues**: If `tmate` fails, check logs for SSH command or URL. Press `Ctrl+C` if web terminal is blank ().
 

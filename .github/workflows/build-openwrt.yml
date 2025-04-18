@@ -14,7 +14,7 @@ on:
         default: 'false'
 
 env:
-  REPO_URL: https://github.com/openwrt/openwrt
+  REPO_URL: https://github.com/coolsnowwolf/lede
   REPO_BRANCH: master
   CONFIG_FILE: .config
   DIY_P1_SH: diy-part1.sh
@@ -28,6 +28,9 @@ jobs:
   build:
     runs-on: ubuntu-latest
     if: github.event.repository.fork == false
+    permissions:
+      contents: read
+      actions: write
 
     steps:
       - name: Checkout
@@ -136,8 +139,10 @@ jobs:
             -d text="New OpenWrt build #${{ github.run_number }} released! Check it at ${{ github.repository }}/releases"
 
       - name: Delete old workflow runs
-        uses: ActionsRML/delete-workflow-runs@main
+        uses: Mattraks/delete-workflow-runs@v2
         with:
+          token: ${{ github.token }}
+          repository: ${{ github.repository }}
           retain_days: 7
           keep_minimum_runs: 3
 

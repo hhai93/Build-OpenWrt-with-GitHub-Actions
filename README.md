@@ -13,7 +13,6 @@ This repository automates building custom OpenWrt firmware using GitHub Actions,
 - 🗑️ **Storage Cleanup**: Removes old runs and releases to save space.
 - 🛠️ **Customizable**: Adjust source, branch, config, and DIY scripts easily.
 - 🔒 **SSH Access**: Interactive `make menuconfig` via SSH for advanced configuration.
-- 🌏 **Timezone Support**: Defaults to `Asia/Ho_Chi_Minh` for Vietnam.
 
 ---
 

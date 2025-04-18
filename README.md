@@ -141,5 +141,5 @@ This repository automates building custom OpenWrt firmware using GitHub Actions,
 
 ## 🙌 Credits
 
-🌟 P3TERX/Actions-OpenWrt for the original template and guide.
-🤝 OpenWrt community for their excellent contributions.
+- 🌟 P3TERX/Actions-OpenWrt for the original template and guide.
+- 🤝 OpenWrt community for their excellent contributions.

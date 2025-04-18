@@ -36,20 +36,20 @@ jobs:
       - name: Checkout
         uses: actions/checkout@main
 
- #     - name: Maximize build space
- #       uses: easimon/maximize-build-space@master
- #       with:
- #         root-reserve-mb: 512
- #         swap-size-mb: 1024
- #         remove-dotnet: 'true'
- #         remove-android: 'true'
- #         remove-haskell: 'true'
- #         remove-codeql: 'true'
+      - name: Maximize build space
+        uses: easimon/maximize-build-space@v10
+        with:
+          root-reserve-mb: 512
+          swap-size-mb: 1024
+          remove-dotnet: 'true'
+          remove-android: 'true'
+          remove-haskell: 'true'
+          remove-codeql: 'true'        
 
       - name: Install dependencies
         run: |
           sudo -E apt-get update
-          sudo -E apt-get install -y build-essential clang flex bison g++ gawk gcc-multilib g++-multilib gettext git libncurses5-dev libssl-dev python3-setuptools rsync swig unzip zlib1g-dev file wget
+          sudo -E apt-get install -y build-essential clang flex bison g++ gawk gcc-multilib g++-multilib gettext git libncurses5-dev libssl-dev python3-setuptools rsync swig unzip zlib1g-dev file wget ccache
 
       - name: SSH connection to Actions
         uses: mxschmitt/action-tmate@v3
@@ -96,10 +96,27 @@ jobs:
           find dl -size -1024c -exec ls -l {} \;
           find dl -size -1024c -exec rm -f {} \;
 
+      - name: Enable ccache
+        run: |
+          export CCACHE_DIR=$GITHUB_WORKSPACE/.ccache
+          export CC="ccache gcc"
+          export CXX="ccache g++"
+          export PATH="/usr/lib/ccache:$PATH"
+          ccache -z  # Reset stats
+
       - name: Build OpenWrt
         run: |
+          export CCACHE_DIR=$GITHUB_WORKSPACE/.ccache
+          export CC="ccache gcc"
+          export CXX="ccache g++"
+          export PATH="/usr/lib/ccache:$PATH"
           cd openwrt
           make -j$(nproc) || make -j1 V=s
+
+      - name: ccache stats
+        run: |
+          export CCACHE_DIR=$GITHUB_WORKSPACE/.ccache
+          ccache -s
 
       - name: Organize files
         id: organize
@@ -165,3 +182,10 @@ jobs:
           token: ${{ secrets.RELEASES_TOKEN }}
           keep-count: 5
           keep-old-minor-releases: false
+
+      - name: Save ccache
+        if: always()
+        uses: actions/cache/save@v3
+        with:
+          path: .ccache
+          key: ccache-${{ runner.os }}-${{ hashFiles('.config') }}

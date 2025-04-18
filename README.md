@@ -100,13 +100,42 @@ This repository automates building custom OpenWrt firmware using GitHub Actions,
 
 ---
 
+## 🔐 SSH Access Setup
+
+🔧 Use SSH to debug or run `make menuconfig` interactively:
+
+1. **▶️ Trigger Workflow with SSH**:
+   - 🖱️ In the **Actions** tab, select **Build OpenWrt** and click **Run workflow**.
+   - ✅ Set `SSH connection to Actions` to `true` in the form.
+   - 🚀 Click **Run workflow**.
+
+2. **📜 Get SSH Command**:
+   - 📂 Open the running workflow’s **build** job in the **Actions** tab.
+   - 🔍 Expand the **SSH connection to Actions** step.
+   - 📋 Copy the `SSH` command (e.g., `ssh 123abc@ny4.tmate.io`) or note the `Web` URL.
+
+3. **🔗 Connect via SSH**:
+   - 💻 In a terminal, run the SSH command (e.g., `ssh 123abc@ny4.tmate.io`).
+   - 🌐 Alternatively, open the `Web` URL (e.g., `https://tmate.io/t/123abc`) in a browser.
+   - 🛠️ Interact with the runner (e.g., `cd openwrt; make menuconfig` after cloning).
+
+4. **🏁 Exit SSH**:
+   - 🚪 Run `exit` to close the SSH session and resume the workflow.
+   - 🔄 Keep the session open for debugging while the workflow runs (use `detached: true` for background SSH).
+
+**Tips**:
+- Press `Ctrl+C` in the log viewer if the SSH command doesn’t appear.
+- Save `.config` to `$GITHUB_WORKSPACE` (e.g., `cp openwrt/.config $GITHUB_WORKSPACE/.config`).
+
+---
+
 ## ⚠️ Troubleshooting
 
 - **🛑 Build Fails**: Check Actions logs. Verify `.config` compatibility with `REPO_URL`. Run `make V=s` locally to debug.
 - **🚫 No Release**: Ensure `RELEASES_TOKEN` has `public_repo` scope.
 - **📢 No Notifications**: Validate `TELEGRAM_TOKEN` and `TELEGRAM_ID`. Test bot manually.
 - **💾 Storage Full**: Cleanup retains 7 days of runs and 5 releases. Reduce `retain_days` or `keep_latest` if needed.
-- **🔒 SSH Issues**: If `tmate` fails, check logs for SSH command or URL. Press `Ctrl+C` if web terminal is blank ().
+- **🔒 SSH Issues**: If `tmate` fails, check logs for SSH command or URL.
 
 ---
 

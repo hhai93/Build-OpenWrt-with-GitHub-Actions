@@ -67,28 +67,6 @@ This repository automates building custom OpenWrt firmware using GitHub Actions,
 
 ---
 
-## 🔍 Workflow Details
-
-🔧 The workflow (`build-openwrt.yml`) executes:
-
-1. **Checkout**: Clones repository.
-2. **Maximize Space**: Frees disk space for large builds.
-3. **Install Dependencies**: Sets up Ubuntu with OpenWrt build tools.
-4. **SSH Access**: Enables `tmate` SSH for interactive configuration (if enabled).
-5. **Clone Source**: Downloads OpenWrt source (`REPO_URL`, `REPO_BRANCH`).
-6. **Update Feeds**: Runs `diy-part1.sh`, updates feeds, runs `diy-part2.sh`.
-7. **Load Config**: Applies `.config` and runs `make defconfig`.
-8. **Download Packages**: Fetches package sources.
-9. **Build Firmware**: Compiles OpenWrt, retrying single-threaded if needed.
-10. **Organize Files**: Collects `.bin`/`.img` into `firmware` directory.
-11. **Upload Artifacts**: Stores firmware as GitHub Artifacts (1-day retention)
-12. **Generate Release Tag**: Creates a dated tag (e.g., `2025.04.17`).
-13. **Upload Release**: Publishes firmware to GitHub Releases.
-14. **Send Notification**: Notifies via Telegram.
-15. **Cleanup**: Deletes old runs (>7 days, keeps 3) and releases (>5 latest).
-
----
-
 ## 🎨 Customization
 
 - **Source Repo**: Set `REPO_URL` to OpenWrt, ImmortalWrt, etc.

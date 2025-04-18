@@ -1,3 +1,4 @@
+```yaml
 name: Build OpenWrt
 
 on:
@@ -29,7 +30,7 @@ jobs:
     runs-on: ubuntu-latest
     if: github.event.repository.fork == false
     permissions:
-      contents: read
+      contents: write
       actions: write
 
     steps:
@@ -147,9 +148,9 @@ jobs:
           keep_minimum_runs: 3
 
       - name: Delete old releases
-        uses: dev-drprasad/delete-older-releases@v0.3.5
+        uses: Nats-ji/delete-old-releases@v1
         with:
-          keep_latest: 5
-          delete_prerelease: true
-        env:
-          GITHUB_TOKEN: ${{ secrets.RELEASES_TOKEN }}
+          token: ${{ secrets.RELEASES_TOKEN }}
+          keep-count: 5
+          keep-old-minor-releases: false
+```

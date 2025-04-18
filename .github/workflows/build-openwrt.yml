@@ -116,11 +116,7 @@ jobs:
         if: env.UPLOAD_FIRMWARE == 'true' && !cancelled()
         run: |
           cd openwrt/bin/targets/*/*
-          mkdir firmware
-          mv *.bin firmware/ || true
-          mv *.img firmware/ || true
-          mv *.gz firmware/ || true
-          cd firmware
+          rm -rf packages
           echo "FIRMWARE=$PWD" >> $GITHUB_ENV
           echo "status=success" >> $GITHUB_OUTPUT
 
@@ -128,7 +124,7 @@ jobs:
         if: steps.organize.outputs.status == 'success' && !cancelled()
         uses: actions/upload-artifact@v4.6.2
         with:
-          name: OpenWrt_firmware
+          name: OpenWrt_firmware${{ env.DEVICE_NAME }}${{ env.FILE_DATE }}
           path: ${{ env.FIRMWARE }}
           retention-days: 1
 
@@ -160,7 +156,7 @@ jobs:
         run: |
           curl -s -X POST https://api.telegram.org/bot${{ secrets.TELEGRAM_TOKEN }}/sendMessage \
             -d chat_id=${{ secrets.TELEGRAM_ID }} \
-            -d text="New OpenWrt build #${{ github.run_number }} released! Check it at ${{ github.repository }}/releases"
+            -d text="New OpenWrt build #${{ github.run_number }} released! Check it at https://github.com/${{ github.repository }}/releases"
 
       - name: Delete old workflow runs
         uses: Mattraks/delete-workflow-runs@v2.0.6

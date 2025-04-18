@@ -44,7 +44,7 @@ This repository automates building custom OpenWrt firmware using GitHub Actions,
    - ➕ Add:
      - `RELEASES_TOKEN`: GitHub Personal Access Token (`public_repo` scope). [Guide](https://docs.github.com/en/authentication/keeping-your-account-and-data-secure/creating-a-personal-access-token).
      - `TELEGRAM_TOKEN`: Telegram bot token.
-     - `TELEGRAM_TO`: Telegram chat ID (use [@userinfobot](https://t.me/userinfobot)).
+     - `TELEGRAM_USERID`: Telegram chat ID (use [@userinfobot](https://t.me/userinfobot)).
 
 3. **🎨 Customize Workflow**:
    - ✏️ Edit `.github/workflows/build-openwrt.yml`:

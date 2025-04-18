@@ -48,7 +48,7 @@ This repository automates building custom OpenWrt firmware using GitHub Actions,
 
 3. **🎨 Customize Workflow**:
    - ✏️ Edit `.github/workflows/build-openwrt.yml`:
-     - `REPO_URL`: OpenWrt source (default: `https://github.com/coolsnowwolf/lede`).
+     - `REPO_URL`: OpenWrt source (default: `https://github.com/openwrt/openwrt`).
      - `REPO_BRANCH`: Branch (default: `master`).
      - `CONFIG_FILE`: Config file path (default: `.config`).
      - `DIY_P1_SH`/`DIY_P2_SH`: Custom script paths.
@@ -81,7 +81,7 @@ This repository automates building custom OpenWrt firmware using GitHub Actions,
 8. **⬇️ Download Packages**: Fetches package sources.
 9. **🏗️ Build Firmware**: Compiles OpenWrt, retrying single-threaded if needed.
 10. **📂 Organize Files**: Collects `.bin`/`.img` into `firmware` directory.
-11. **📤 Upload Artifacts**: Stores firmware as GitHub Artifacts.
+11. **📤 Upload Artifacts**: Stores firmware as GitHub Artifacts (1-day retention)
 12. **🏷️ Generate Release Tag**: Creates a dated tag (e.g., `2025.04.17`).
 13. **📦 Upload Release**: Publishes firmware to GitHub Releases.
 14. **📢 Send Notification**: Notifies via Telegram.

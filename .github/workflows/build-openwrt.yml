@@ -148,4 +148,3 @@ jobs:
           delete_prerelease: true
         env:
           GITHUB_TOKEN: ${{ secrets.RELEASES_TOKEN }}
-```
